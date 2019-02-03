@@ -1,0 +1,137 @@
+<html>
+<body onload="onl()">
+<textarea id="out"></textarea>
+<span id="stats"></span>
+</body>
+<script>
+
+
+function ajax(data){
+
+  var senddata="";
+  var processing;
+  var http=(window.XMLHttpRequest) ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP") ? new ActiveXObject("Msxml2.XMLHTTP") : null;
+
+  if (http) {
+    if (data.data) for(var a in data.data)
+      senddata += a + "=" + (data.data[a] === undefined ? "" : encodeURIComponent(data.data[a]) ) + "&";
+      senddata=senddata.substr(0,senddata.length-1);
+      http.open(data.method=="POST"?"POST":"GET", data.url+(senddata&&(data.method!="POST")?(data.url.indexOf("?")>=0?"&":"?")+senddata:""), true);
+      if(data.method == "POST") http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      http.onreadystatechange = function() {
+        if(http.readyState == 4)
+          if (((http.status == 200) && http.getAllResponseHeaders().length) || (http.status == 0))
+            data.callback(data.isJson?JSON.parse(this.responseText):this.responseText,http.status);
+            else data.callback(false,http.status);
+      }
+        try {
+          http.send(senddata&&(data.method=="POST")?senddata:null);
+        } catch(err) {
+          data.callback(false,-1);
+        }
+ } else data.callback(false,-1);
+};
+
+// 11: ---SPACE---
+function onl() {
+	var tilemap={
+		"1":{tile:"#",intensity:0.1},
+		"2":{tile:"@",intensity:0.1},
+		"3":{tile:"_",intensity:0.1},
+		"4":{tile:".",intensity:0.1},
+		"5":{tile:"a",intensity:3},
+		"6":{tile:"A",intensity:6},
+		"7":{tile:"b",intensity:4},
+		"8":{tile:"B",intensity:8},
+		"9":{tile:"m",intensity:0.1},
+
+		"12":{tile:"^",intensity:0.1},
+		"31":{tile:"C",intensity:0.1},
+		"32":{tile:"c",intensity:0.1},
+		"33":{tile:"X",intensity:0.1},
+		"34":{tile:"x",intensity:0.1},
+		"35":{tile:"W",intensity:0.1},
+		"36":{tile:"w",intensity:0.1},
+
+		"41":{tile:"u",intensity:5},
+		"42":{tile:"s",intensity:5},
+		"43":{tile:"d",intensity:5},
+		"44":{tile:"l",intensity:5},
+		"45":{tile:"f",intensity:5},
+		"51":{tile:"U",intensity:5},
+		"52":{tile:"S",intensity:5},
+		"53":{tile:"D",intensity:5},
+		"54":{tile:"L",intensity:5},
+		"55":{tile:"F",intensity:5},
+	}
+
+	ajax({
+		url:"stages.json",
+		isJson:true,
+		callback:function(data){
+			var layers=[],metalayer,obj,pos,chf,out=[];
+			for (var i=0;i<data.layers.length;i++) {
+				layer=data.layers[i];
+				if (layer.name=="Meta") 
+					metalayer=layer;
+				else
+					layers[layer.name.substr(2,1)*1]=layer;
+			}
+				
+			for (var j=0;j<metalayer.objects.length;j++) {
+				obj=metalayer.objects[j];
+				var x1=Math.floor(obj.x/16),y1=Math.floor(obj.y/16);
+				var x2=x1+Math.floor(obj.width/16),y2=y1+Math.floor(obj.height/16);
+				var tile={art:[],intensity:0};
+				var hasTiles=[];
+				for (var i=0;i<layers.length;i++) {
+					var artblock=[];
+					var layer=layers[i];
+					var ht=false;
+					for (var y=y1;y<y2;y++) {
+						var ny=y-y1;
+						artblock[ny]="";
+						if (tile.art[i-1]&&(tile.art[i-1][ny]=="--SPACE--"))
+							artblock[ny]=tile.art[i-1][ny];
+						else
+							for (var x=x1;x<x2;x++) {
+								pos=y*layer.width+x;
+								chr=layer.data[pos];
+								if (chr==11) { // ---SPACE
+									artblock[ny]="--SPACE--";
+									break;
+								} else if (tilemap[chr]) {
+									ht=true;
+									artblock[ny]+=tilemap[chr].tile;
+									tile.intensity+=tilemap[chr].intensity;
+								} else {
+									artblock[ny]+=" ";
+								}
+							}
+						artblock[ny]=artblock[ny].trimRight();
+					}					
+					hasTiles[tile.art.length]=ht;
+					tile.art.push(artblock);
+				}
+				for (var i=hasTiles.length-1;i>=0;i--)
+					if (!hasTiles[i]) tile.art.splice(i,1);
+					else break;
+				var props={},hasProps=false;
+				for (var a in obj.properties)  {
+					hasProps=true;
+					props[a]=obj.properties[a];
+				}
+				if (hasProps) tile.model=props;
+				out.push(tile);
+			}
+			out.sort(function(a,b){ return a.intensity==b.intensity?0:a.intensity>b.intensity?1:-1})
+			for (var a in out) delete out[a].intensity;
+			console.log(out);
+			document.getElementById("out").value=JSON.stringify(out);
+			document.getElementById("stats").innerHTML="TILES: "+out.length;
+		}
+	});
+}
+
+</script>
+</html>
