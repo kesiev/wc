@@ -61,5 +61,5 @@ I'm leaving here some gameplay ideas I've left out. Maybe, one day...
   * BOSS: multiple bosses at the same time
   * STAGE: More stage parts
   * STAGE: Blinking laser fences
-  * GAME: "New game+"" with increased intensity
+  * GAME: "New game+" with increased intensity
   * GAME: "Inferno mode" with maxed intensity
